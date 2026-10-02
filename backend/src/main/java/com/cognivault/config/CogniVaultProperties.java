@@ -63,6 +63,3 @@ public record CogniVaultProperties(
             double highThreshold,
             double criticalThreshold) {}
 }
-
-
-\n

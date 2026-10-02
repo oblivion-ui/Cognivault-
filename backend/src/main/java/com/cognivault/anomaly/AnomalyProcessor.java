@@ -317,11 +317,3 @@ public class AnomalyProcessor {
         return mapper.readTree(response.body());
     }
 }
-
-
-
-
-
-
-
-\n

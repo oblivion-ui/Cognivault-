@@ -17,6 +17,19 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", "")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "")
 COGNIVAULT_ML_API_KEY = os.getenv("COGNIVAULT_ML_API_KEY", "")
 
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+# Generation timeout in seconds. The first request after Ollama starts also
+# pays a one-time model load, so this stays generous but must remain below the
+# backend's 240-second per-request budget for /v1/rag/query.
+OLLAMA_TIMEOUT_SECONDS = _env_float("OLLAMA_TIMEOUT_SECONDS", 120.0)
+
 def now():
     return datetime.now(timezone.utc)
 
@@ -220,7 +233,7 @@ Authorized evidence:
 """
 
         try:
-            async with httpx.AsyncClient(timeout=120) as client:
+            async with httpx.AsyncClient(timeout=OLLAMA_TIMEOUT_SECONDS) as client:
                 response = await client.post(
                     OLLAMA_URL.rstrip("/") + "/api/generate",
                     json={
@@ -235,28 +248,11 @@ Authorized evidence:
 
             response.raise_for_status()
 
-            answer = response.json().get("response")
+            # A truncated or non-JSON body (for example from an Ollama process
+            # that was killed mid-generation) must degrade, not crash or 503.
+            payload = response.json()
 
-            if not answer:
-                return {
-                    "answer": None,
-                    "evidence": evidence,
-                    "status": "DEGRADED",
-                    "limitations": [
-                        "Retrieval succeeded, but Ollama returned no answer."
-                    ],
-                }
-
-            return {
-                "answer": answer.strip(),
-                "evidence": evidence,
-                "status": "READY",
-                "limitations": [
-                    "Answer is generated only from authorized retrieved context."
-                ],
-            }
-
-        except (httpx.TimeoutException, httpx.HTTPError):
+        except (httpx.TimeoutException, httpx.HTTPError, ValueError):
             return {
                 "answer": None,
                 "evidence": evidence,
@@ -267,6 +263,27 @@ Authorized evidence:
                 ],
             }
 
+        answer = payload.get("response")
+
+        if not answer:
+            return {
+                "answer": None,
+                "evidence": evidence,
+                "status": "DEGRADED",
+                "limitations": [
+                    "Retrieval succeeded, but Ollama returned no answer."
+                ],
+            }
+
+        return {
+            "answer": answer.strip(),
+            "evidence": evidence,
+            "status": "READY",
+            "limitations": [
+                "Answer is generated only from authorized retrieved context."
+            ],
+        }
+
     except HTTPException:
         raise
     except Exception as exc:
@@ -274,8 +291,3 @@ Authorized evidence:
             status_code=503,
             detail=f"RAG service unavailable: {exc.__class__.__name__}",
         ) from exc
-
-
-
-
-\n

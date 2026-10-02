@@ -45,8 +45,3 @@ public EmployeeResponse transition(UUID id, AccountActionRequest request) {
 @Transactional @AuditAction(action="CREDENTIAL_RESET",entityType="EMPLOYEE") public CredentialResetResponse resetCredential(UUID id,CredentialResetRequest request){Employee e=get(id);String generated=generatePassword();e.getUser().setPasswordHash(encoder.encode(generated));e.getUser().setMustChangePassword(request.forceChange());users.save(e.getUser());return new CredentialResetResponse(request.generateTemporary()?generated:null,null);}
  private String generatePassword(){StringBuilder out=new StringBuilder();for(int i=0;i<20;i++)out.append(ALPHABET.charAt(random.nextInt(ALPHABET.length())));return out.toString();}
 }
-
-
-
-
-\n

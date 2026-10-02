@@ -26,5 +26,3 @@ export interface Prediction { timestamp: string; value: number; lowerBound?: num
 export interface LifecycleRecord { id: string; subject: string; policy: string; status: string; retentionUntil?: string; lastAction?: string }
 export type PageResponse<T> = { content: T[]; size: number; totalElements: number; totalPages: number } & ({ page: number; number?: number } | { page?: number; number: number })
 export interface DashboardSummary { metrics: Array<{ key: string; label: string; value: number | string; change?: string; severity?: RiskLevel }>; auditTrend?: Array<{ label: string; value: number }>; riskDistribution?: Array<{ label: string; value: number }>; recentEvents?: AuditEvent[] }
-
-\n

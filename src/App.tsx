@@ -34,5 +34,3 @@ export default function App(){return <Routes>
   </Route>
   <Route path="*" element={<Navigate to="/login" replace/>}/>
 </Routes>}
-
-\n

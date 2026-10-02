@@ -47,6 +47,3 @@ function EmployeeTab({tab,employee:e,auditEvents,auditLoading,auditError,auditPa
 }
 
 function Timeline({events}:{events:AuditEvent[]}){if(!events.length)return <EmptyState title="No lifecycle events returned" description="The backend did not return employee lifecycle events for this identity."/>;return <ol className="timeline">{events.slice(0,6).map(({id,action,timestamp},index)=><li key={id}><span>{index===0?<UserCheck/>:<Activity/>}</span><div><strong>{titleCase(action)}</strong><small>{formatDateTime(timestamp)} · {id}</small></div></li>)}</ol>}
-
-
-\n

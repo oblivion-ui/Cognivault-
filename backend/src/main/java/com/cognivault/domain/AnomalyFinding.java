@@ -112,5 +112,3 @@ public class AnomalyFinding {
         return explanations;
     }
 }
-
-\n

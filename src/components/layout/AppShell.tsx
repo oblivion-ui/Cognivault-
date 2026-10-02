@@ -32,5 +32,3 @@ export function AppShell(){const{user,logout}=useAuth();const navigate=useNaviga
     <div className="main-area"><header className="topbar"><button className="menu-btn" onClick={()=>setMobileOpen(true)} aria-label="Open navigation"><Menu/></button><div className="top-context"><Network/><span>Enterprise workspace</span><i/></div><div className="top-actions"><div className={`connection ${ws.toLowerCase()}`}><span/>{ws==='CONNECTED'?'STOMP connected':ws==='CONNECTING'?'Connecting':ws==='NOT_CONFIGURED'?'Realtime not configured':'Realtime unavailable'}</div><NavLink to="/notifications" aria-label="Notifications"><Bell/></NavLink><NavLink to="/profile" aria-label="Profile"><UserCircle/></NavLink></div></header><main><Outlet/></main></div>
   </div>
 }
-
-\n

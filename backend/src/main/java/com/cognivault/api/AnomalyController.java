@@ -142,5 +142,3 @@ public class AnomalyController {
                 .orElse(null);
     }
 }
-
-\n

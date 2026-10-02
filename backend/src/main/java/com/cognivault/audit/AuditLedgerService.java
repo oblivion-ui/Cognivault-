@@ -107,5 +107,3 @@ public class AuditLedgerService {
 
  public record IntegrityResult(String status,Instant verifiedAt,int totalEventsChecked,String affectedEventId,String previousHash,String currentHash,long chainPosition,String message){}
 }
-
-\n

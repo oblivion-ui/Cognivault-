@@ -41,5 +41,3 @@ public interface EmployeeRepository extends JpaRepository<Employee, UUID> {
            countQuery = "select count(e) from Employee e where e.managerUser.id = :managerUserId")
     Page<Employee> findAllByManagerUserId(UUID managerUserId, Pageable pageable);
 }
-
-\n

@@ -38,5 +38,3 @@ public final class AnomalyDtos {
             int findingsReclassified) {
     }
 }
-
-\n

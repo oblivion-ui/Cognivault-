@@ -1,6 +1,6 @@
 # CogniVault
 
-CogniVault is a local enterprise identity and audit application. The current stack is a React/Vite frontend, Java 17/Spring Boot API, MySQL for identity records, MongoDB for the audit ledger, and a FastAPI service for Isolation Forest and SHAP. ChromaDB and Ollama are optional local AI-profile services.
+CogniVault is a local enterprise identity and audit application. The current stack is a React/Vite frontend, Java 17/Spring Boot API, MySQL for identity records, MongoDB for the audit ledger, and a FastAPI service for Isolation Forest and SHAP. ChromaDB is an optional local AI-profile service; Ollama runs natively on the host by default (an optional containerized Ollama is also available).
 
 ## Run Locally
 
@@ -34,15 +34,35 @@ Invoke-RestMethod http://localhost:8080/api/health/readiness | ConvertTo-Json -D
 Invoke-RestMethod http://localhost:8000/health/readiness | ConvertTo-Json -Depth 8
 ```
 
-Readiness values include `READY`, `STARTING`, `DEGRADED`, `NOT_CONFIGURED`, `UNAVAILABLE`, and `ERROR`. ChromaDB and Ollama are under the `ai` Compose profile; without that profile, ML readiness is expected to be degraded and retrieval/generation must report unavailable rather than fabricate a result.
+Readiness values include `READY`, `STARTING`, `DEGRADED`, `NOT_CONFIGURED`, `UNAVAILABLE`, and `ERROR`. ChromaDB is under the `ai` Compose profile; without that profile, ML readiness is expected to be degraded and retrieval/generation must report unavailable rather than fabricate a result.
 
-To start the optional AI dependencies:
+To start the optional ChromaDB dependency:
 
 ```powershell
 docker compose --profile ai up --build -d
 ```
 
-The configured Ollama model is `llama3.2:3b`; model download and inference consume additional disk, memory, and CPU. Ollama is not required for backend or frontend startup. Avoid pulling larger models on constrained hardware.
+### Ollama (local RAG generation)
+
+Ollama runs **natively on the host** by default, outside Docker, so model loading does not compete with the containers for the limited Docker Desktop memory budget (a `llama3.2:3b` load needs roughly 2–3 GiB on its own). The ML service container reaches a native Ollama through `host.docker.internal`, which works on Docker Desktop out of the box and on Linux hosts via the `host-gateway` mapping already configured in `docker-compose.yml`.
+
+On the host (Windows PowerShell example):
+
+```powershell
+ollama pull llama3.2:3b
+ollama serve   # usually already running as a service
+```
+
+No `.env` change is required for this mode; `OLLAMA_URL` defaults to `http://host.docker.internal:11434`.
+
+Optional full-Docker Ollama (only for hosts with enough spare RAM): set `OLLAMA_URL=http://ollama:11434` in `.env`, start the profile, and pull the model into the container:
+
+```powershell
+docker compose --profile ai --profile ollama up -d
+docker compose exec ollama ollama pull llama3.2:3b
+```
+
+The configured Ollama model is `llama3.2:3b` (`OLLAMA_MODEL` in `.env`). Model availability is part of ML readiness; a running server without the configured model reports `NOT_CONFIGURED`, and RAG then returns its degraded response with retrieved evidence but no generated answer. The per-request generation timeout is `OLLAMA_TIMEOUT_SECONDS` (default 120) and must stay below the backend's 240-second RAG budget.
 
 ## Data and API
 

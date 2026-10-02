@@ -57,6 +57,3 @@ public final class ApprovalDtos {
                         Instant verifiedAt) {
     }
 }
-
-
-\n

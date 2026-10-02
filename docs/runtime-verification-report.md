@@ -395,3 +395,81 @@ docker compose ps
 Invoke-RestMethod http://localhost:8080/api/health/readiness | ConvertTo-Json -Depth 8
 Invoke-RestMethod http://localhost:8000/health/readiness | ConvertTo-Json -Depth 8
 ```
+## Verification Update — 2026-10-02 — RAG generation path (P0 blocker)
+
+This update investigates and fixes the P0 RAG generation blocker: `Spring InvestigationService -> FastAPI ML service -> ChromaDB retrieval -> Ollama generation`.
+
+### Root cause
+
+Docker memory pressure on the containerized Ollama, not URL, model, payload, or timeout configuration:
+
+- `docker-compose.yml` defaulted `OLLAMA_URL=http://ollama:11434`, placing the LLM inside the same ~3.8 GiB Docker budget as MySQL, MongoDB, ChromaDB, the ML service, the Spring backend, and the frontend. A `llama3.2:3b` load needs roughly 2–3 GiB resident on its own, so actual generation previously OOM-killed the Ollama server process; the ML service's non-streaming `/api/generate` request then timed out. `/api/tags` (idle server) and Chroma retrieval (no LLM) kept working, which matches the previously observed failure pattern exactly.
+- The configuration already supported a native host Ollama through `OLLAMA_URL`, but `.env.example` did not expose it, so deployments following `.env.example` landed on the containerized path by default.
+
+### Changes
+
+- `docker-compose.yml`: `ml-service` now defaults `OLLAMA_URL` to `http://host.docker.internal:11434` (native host Ollama) and maps `host.docker.internal` to `host-gateway` so the same default also works on Linux hosts. The containerized `ollama` service moved from the `ai` profile to a dedicated `ollama` profile so `--profile ai` no longer drags a memory-heavy Ollama container into constrained setups; it remains fully supported by setting `OLLAMA_URL=http://ollama:11434`. `OLLAMA_TIMEOUT_SECONDS` is passed through.
+- `ml-service/app/main.py`: generation timeout is now configurable via `OLLAMA_TIMEOUT_SECONDS` (default 120, invalid values fall back to the default, must stay below the backend's 240-second per-request budget). A non-JSON/truncated Ollama response body (e.g. from a process killed mid-generation behind a proxy) now degrades instead of surfacing as HTTP 503. Authorization, `allowed_document_ids` filtering, prompt construction, and all fallback semantics are unchanged.
+- `.env.example`, `README.md`, `backend/README.md`: documented the native-host-Ollama architecture and the optional full-Docker mode.
+- Repo repair: the baseline commit contained a 2-byte trailing `\n` serialization artifact after the last line of 24 files. This made `ml-service/app/main.py` unimportable (Python `SyntaxError`), made `docker-compose.yml` unparseable (YAML `ScannerError` line 125), and produced hard syntax errors in 16 Java sources (verified with a tree-sitter Java parse of the baseline, including `InvestigationService.java` — the RAG path's Spring entry point) and in 6 frontend sources. The artifact was mechanically removed from all 24 files; no other bytes were changed in those files.
+- `ml-service/tests/test_ml.py`: added 9 RAG generation-path tests (see below) and corrected one stale assertion in the SHAP test (`NEGATIVE_CONTRIBUTION` -> `INCREASES_RISK`, the strings the endpoint actually returns).
+
+### Tests executed (this sandbox)
+
+```text
+ml-service pytest (Python 3.11, requirements.txt deps): 14 passed, 0 failed
+  - 5 pre-existing tests (isolation forest, SHAP, RAG auth fail-closed/auth ok/key required)
+  - 9 new: authorized-evidence-only generation, where-filter by allowed_document_ids,
+    generation timeout -> DEGRADED (no fabrication), invalid Ollama payload -> DEGRADED,
+    Ollama HTTP 500 -> DEGRADED, Ollama unreachable -> DEGRADED, configured model missing
+    -> DEGRADED with zero generate calls, empty authorized evidence -> EMPTY, missing
+    service key -> 401
+Frontend production build (npm ci + npm run build): PASS (vite 7.3.2, 1946 modules)
+Java syntax validation (tree-sitter-java): 93/93 files parse cleanly
+  (baseline: 16 of those 93 failed before the artifact repair)
+docker-compose.yml: parses as valid YAML; ${VAR:-default} interpolation simulated for
+  both native mode (-> host.docker.internal:11434) and docker mode (-> ollama:11434)
+```
+
+Backend Maven tests could NOT be executed in this sandbox: Maven Central and all reachable mirrors (repo1.maven.org, repo.maven.apache.org, aliyun, huaweicloud, jitpack) are network-blocked, and no JDK is installable (Debian mirrors blocked). No backend Java logic was changed (only the artifact bytes), so the previously recorded passing suite is unaffected by design; it must be re-run on a normal network (`cd backend && mvn test`).
+
+### Runtime verification performed (this sandbox)
+
+Real components: actual `ml-service` code under uvicorn, real chromadb 0.5.23 server (same version as the Compose image), real chromadb HttpClient embedding path. Substitutes forced by sandbox network blocks (ollama.com, GitHub release assets, Docker Hub, HuggingFace, S3 all blocked): a protocol-faithful Ollama HTTP stub (`/api/tags`, `/api/generate`) instead of the real Ollama server, and a synthetic 384-dim ONNX embedding fixture (same file names/graph shape as chromadb's default all-MiniLM-L6-v2) instead of the real MiniLM weights. Neither substitute is committed to the repository.
+
+| # | Scenario | Result |
+|---|---|---|
+| 1 | `GET /health/readiness` with Chroma + Ollama up | `READY` (ChromaDB READY, Ollama READY, auth READY) — VERIFIED |
+| 2 | `POST /v1/rag/index` 3 documents | `{"indexed":3}` through the real Chroma server — VERIFIED |
+| 3 | RAG query, allowed `[evt-1, evt-2]` | `READY`, answer present, evidence evt-1 (top rank) + evt-2 — VERIFIED |
+| 4 | RAG query, allowed `[evt-3]` only, query semantically matching evt-1 | evidence contains ONLY evt-3; no evt-1/evt-2 leakage — VERIFIED |
+| 5 | RAG query, allowed id not indexed | `EMPTY`, no evidence, no generation — VERIFIED |
+| 6 | RAG query without service key | HTTP 401 — VERIFIED |
+| 7 | Ollama process down: readiness | overall `DEGRADED`, Ollama `UNAVAILABLE` — VERIFIED |
+| 8 | Ollama process down: RAG query | `DEGRADED`, `answer: null`, real evidence returned, no fabricated answer — VERIFIED |
+| 9 | Ollama hanging 30s, `OLLAMA_TIMEOUT_SECONDS=3` | query degrades after ~3s with evidence; timeout honored — VERIFIED |
+| 10 | Model missing from `/api/tags` | readiness `NOT_CONFIGURED` for Ollama — VERIFIED |
+| 11 | Model missing: RAG query | `DEGRADED` with evidence, zero `/api/generate` calls — VERIFIED |
+| 12 | Wire payload inspection | `model=llama3.2:3b`, `stream=false`, `num_predict=64`; prompt contained ONLY authorized evidence in both authorization scenarios — VERIFIED |
+
+### Not tested in this sandbox (blocked by sandbox network/resources)
+
+- Real Ollama server software and real `llama3.2:3b` weights: every download source is blocked. Inference speed/quality is therefore unverified here.
+- Docker Compose startup, `host.docker.internal` resolution from a container, and Docker Desktop (Windows) behavior: no Docker daemon in this sandbox.
+- Backend `mvn test` and the full Spring `InvestigationService -> ml-service` hop: Maven Central blocked (no backend code changed).
+- The Spring -> ML hop is covered indirectly: its request/response contract (`/v1/rag/index`, `/v1/rag/query`, service-key header, evidence/limitations/answer fields) is exactly what scenarios 2-12 exercised, and the backend's behavior on `DEGRADED`/`EMPTY`/`UNAVAILABLE` statuses is unchanged from the previously reviewed implementation.
+
+### Local verification commands for the Windows host (final gate)
+
+```powershell
+# native Ollama on the host
+ollama pull llama3.2:3b
+ollama serve   # or keep the Ollama service running
+
+# containers (ChromaDB under ai profile; Ollama stays native by default)
+docker compose --profile ai up --build -d
+Invoke-RestMethod http://localhost:8000/health/readiness   # expect READY
+# then exercise /api/investigations from the frontend or an authenticated client
+```
+
+The RAG generation fix is demo-ready pending one final on-host confirmation: a real generation through native Ollama (`GET /api/tags` must list `llama3.2:3b`, then an authenticated `POST /api/investigations` must return status `READY` with an answer). All container-side behavior around that hop is verified above.

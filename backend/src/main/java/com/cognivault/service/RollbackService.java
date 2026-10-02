@@ -207,6 +207,3 @@ public class RollbackService {
             String sourceEventId,
             Instant sourceEventTimestamp) {}
 }
-
-
-\n

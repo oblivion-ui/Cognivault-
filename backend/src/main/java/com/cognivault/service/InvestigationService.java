@@ -182,7 +182,3 @@ public class InvestigationService {
     public record Evidence(String id, String title, String excerpt, String eventId, String timestamp) {}
     public record InvestigationResponse(String answer, List<Evidence> evidence, String status, List<String> limitations) {}
 }
-
-
-
-\n

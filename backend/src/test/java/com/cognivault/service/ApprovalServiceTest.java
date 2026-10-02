@@ -672,10 +672,3 @@ class ApprovalServiceTest {
                                 "ROLE_" + (username.equals("manager") ? "MANAGER" : "ADMIN")))));
     }
 }
-
-
-
-
-
-
-\n

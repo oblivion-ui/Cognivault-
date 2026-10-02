@@ -22,6 +22,3 @@ public class GlobalExceptionHandler {
  @ExceptionHandler(IllegalArgumentException.class) ResponseEntity<ApiError> illegal(IllegalArgumentException e){return ResponseEntity.badRequest().body(ApiError.of("BAD_REQUEST",e.getMessage()));}
  @ExceptionHandler(RuntimeException.class) ResponseEntity<ApiError> runtime(RuntimeException e){log.error("Unhandled backend exception",e);return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiError.of("INTERNAL_ERROR","The backend could not complete this request."));}
 }
-
-
-\n

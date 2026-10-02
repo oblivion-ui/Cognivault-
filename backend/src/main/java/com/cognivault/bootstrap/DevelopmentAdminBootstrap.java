@@ -110,5 +110,3 @@ public class DevelopmentAdminBootstrap {
                 false));
     }
 }
-
-\n

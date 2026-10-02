@@ -27,6 +27,3 @@ function initialLifecycleAction(status:Employee['accountStatus']){
   if(status==='PENDING'||status==='INACTIVE'||status==='LOCKED')return 'ACTIVATE'
   return 'SUSPEND'
 }
-
-
-\n

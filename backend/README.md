@@ -20,8 +20,8 @@ The backend exposes `/api/health/readiness`, `/api/health/services`, and Spring 
 
 ## Windows/native Ollama
 
-Run Ollama natively on Windows, pull the configured model with `ollama pull %OLLAMA_MODEL%`, and set `OLLAMA_URL=http://host.docker.internal:11434` in `.env` before starting the ML service. Do not expose Ollama publicly.
+Ollama runs natively on the Windows host by default. Pull the configured model with `ollama pull llama3.2:3b`, keep `ollama serve` running, and leave `OLLAMA_URL` at its default `http://host.docker.internal:11434` (set it in `.env` only to override). The ML service container resolves `host.docker.internal` on Docker Desktop automatically and on Linux through the configured `host-gateway` mapping. Do not expose Ollama publicly.
 
-## Docker Ollama
+## Docker Ollama (optional)
 
-The Compose `ollama` service is profile-gated under `ai`. Start it with `docker compose --profile ai up -d ollama`, then pull a CPU-compatible model with `docker compose exec ollama ollama pull llama3.2:3b`. Model availability is part of ML readiness; a running container alone is not treated as READY.
+For hosts with enough spare RAM, the Compose `ollama` service is profile-gated under `ollama`. Set `OLLAMA_URL=http://ollama:11434` in `.env`, start it with `docker compose --profile ai --profile ollama up -d ollama`, then pull a CPU-compatible model with `docker compose exec ollama ollama pull llama3.2:3b`. Model availability is part of ML readiness; a running container alone is not treated as READY.

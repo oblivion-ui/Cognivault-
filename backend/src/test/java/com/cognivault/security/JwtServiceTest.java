@@ -20,5 +20,3 @@ class JwtServiceTest {
     assertTrue(service.isValid(token));
   }
 }
-
-\n
