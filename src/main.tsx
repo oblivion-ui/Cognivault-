@@ -1,0 +1,8 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import './index.css'
+import App from './App'
+import { AuthProvider } from './auth/AuthContext'
+import { WebSocketProvider } from './websocket/WebSocketProvider'
+createRoot(document.getElementById('root')!).render(<StrictMode><BrowserRouter><AuthProvider><WebSocketProvider><App/></WebSocketProvider></AuthProvider></BrowserRouter></StrictMode>)

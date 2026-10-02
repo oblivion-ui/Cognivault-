@@ -1,0 +1,104 @@
+﻿{
+    "instance":  {
+                     "values":  {
+                                    "action_unique_entities_recently":  4,
+                                    "event_action_frequency":  4,
+                                    "actor_event_frequency":  6,
+                                    "actor_unique_entities_recently":  4,
+                                    "actor_action_frequency":  3,
+                                    "seconds_since_previous_global_event":  5,
+                                    "seconds_since_previous_actor_event":  5
+                                }
+                 },
+    "contamination":  0.1,
+    "baseline":  [
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  2,
+                                        "event_action_frequency":  2,
+                                        "actor_event_frequency":  2,
+                                        "actor_unique_entities_recently":  2,
+                                        "actor_action_frequency":  2,
+                                        "seconds_since_previous_global_event":  10,
+                                        "seconds_since_previous_actor_event":  10
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  3,
+                                        "event_action_frequency":  3,
+                                        "actor_event_frequency":  3,
+                                        "actor_unique_entities_recently":  3,
+                                        "actor_action_frequency":  3,
+                                        "seconds_since_previous_global_event":  20,
+                                        "seconds_since_previous_actor_event":  20
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  4,
+                                        "event_action_frequency":  1,
+                                        "actor_event_frequency":  4,
+                                        "actor_unique_entities_recently":  1,
+                                        "actor_action_frequency":  1,
+                                        "seconds_since_previous_global_event":  30,
+                                        "seconds_since_previous_actor_event":  30
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  1,
+                                        "event_action_frequency":  2,
+                                        "actor_event_frequency":  5,
+                                        "actor_unique_entities_recently":  2,
+                                        "actor_action_frequency":  2,
+                                        "seconds_since_previous_global_event":  40,
+                                        "seconds_since_previous_actor_event":  40
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  2,
+                                        "event_action_frequency":  3,
+                                        "actor_event_frequency":  1,
+                                        "actor_unique_entities_recently":  3,
+                                        "actor_action_frequency":  3,
+                                        "seconds_since_previous_global_event":  50,
+                                        "seconds_since_previous_actor_event":  50
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  3,
+                                        "event_action_frequency":  1,
+                                        "actor_event_frequency":  2,
+                                        "actor_unique_entities_recently":  1,
+                                        "actor_action_frequency":  1,
+                                        "seconds_since_previous_global_event":  60,
+                                        "seconds_since_previous_actor_event":  60
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  4,
+                                        "event_action_frequency":  2,
+                                        "actor_event_frequency":  3,
+                                        "actor_unique_entities_recently":  2,
+                                        "actor_action_frequency":  2,
+                                        "seconds_since_previous_global_event":  70,
+                                        "seconds_since_previous_actor_event":  70
+                                    }
+                     },
+                     {
+                         "values":  {
+                                        "action_unique_entities_recently":  1,
+                                        "event_action_frequency":  3,
+                                        "actor_event_frequency":  4,
+                                        "actor_unique_entities_recently":  3,
+                                        "actor_action_frequency":  3,
+                                        "seconds_since_previous_global_event":  80,
+                                        "seconds_since_previous_actor_event":  80
+                                    }
+                     }
+                 ]
+}

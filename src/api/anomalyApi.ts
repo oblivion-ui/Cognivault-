@@ -1,0 +1,1 @@
+export { anomalyApi } from './platformApis'

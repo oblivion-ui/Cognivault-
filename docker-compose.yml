@@ -1,0 +1,125 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: cognivault
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    ports: ["3307:3306"]
+    volumes: [cognivault_mysql:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    volumes: [cognivault_mongo:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  chroma:
+    image: chromadb/chroma:0.5.23
+    restart: unless-stopped
+    profiles: [ai]
+    ports: ["8001:8000"]
+    volumes: [cognivault_chroma:/chroma/chroma]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/heartbeat')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    profiles: [ai]
+    ports: ["11434:11434"]
+    volumes: [cognivault_ollama:/root/.ollama]
+
+  ml-service:
+    build: ./ml-service
+    restart: unless-stopped
+    volumes:
+      - cognivault_ml_models:/root/.cache/chroma
+    environment:
+      PORT: 8000
+      CHROMA_URL: ${CHROMA_URL:-http://chroma:8000}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      COGNIVAULT_ML_API_KEY: ${COGNIVAULT_ML_API_KEY:-}
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/readiness')"]
+      interval: 10s
+      timeout: 15s
+      retries: 15
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      MYSQL_URL: jdbc:mysql://mysql:3306/cognivault?serverTimezone=UTC
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in .env}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MONGODB_URI: mongodb://mongodb:27017/cognivault_audit
+      COGNIVAULT_JWT_SECRET: ${COGNIVAULT_JWT_SECRET:?Set a 32+ character JWT secret in .env}
+      COGNIVAULT_BOOTSTRAP_ADMIN_ENABLED: ${COGNIVAULT_BOOTSTRAP_ADMIN_ENABLED:-true}
+      COGNIVAULT_BOOTSTRAP_ADMIN_USERNAME: ${COGNIVAULT_BOOTSTRAP_ADMIN_USERNAME:?Set bootstrap username in .env}
+      COGNIVAULT_BOOTSTRAP_ADMIN_EMAIL: ${COGNIVAULT_BOOTSTRAP_ADMIN_EMAIL:?Set bootstrap email in .env}
+      COGNIVAULT_BOOTSTRAP_ADMIN_PASSWORD: ${COGNIVAULT_BOOTSTRAP_ADMIN_PASSWORD:?Set bootstrap password in .env}
+      COGNIVAULT_BOOTSTRAP_ADMIN_NAME: ${COGNIVAULT_BOOTSTRAP_ADMIN_NAME:-Local Administrator}
+      COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_ENABLED: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_ENABLED:-false}
+      COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_USERNAME: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_USERNAME:-}
+      COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_EMAIL: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_EMAIL:-}
+      COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_PASSWORD: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_PASSWORD:-}
+      COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_NAME: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_NAME:-Four-Eyes Approver}
+      COGNIVAULT_BOOTSTRAP_HR_ENABLED: ${COGNIVAULT_BOOTSTRAP_HR_ENABLED:-false}
+      COGNIVAULT_BOOTSTRAP_HR_RESET_PASSWORD: ${COGNIVAULT_BOOTSTRAP_HR_RESET_PASSWORD:-false}
+      COGNIVAULT_BOOTSTRAP_HR_USERNAME: ${COGNIVAULT_BOOTSTRAP_HR_USERNAME:-}
+      COGNIVAULT_BOOTSTRAP_HR_EMAIL: ${COGNIVAULT_BOOTSTRAP_HR_EMAIL:-}
+      COGNIVAULT_BOOTSTRAP_HR_PASSWORD: ${COGNIVAULT_BOOTSTRAP_HR_PASSWORD:-}
+      COGNIVAULT_BOOTSTRAP_HR_NAME: ${COGNIVAULT_BOOTSTRAP_HR_NAME:-HR Development User}
+      ML_SERVICE_URL: http://ml-service:8000
+      COGNIVAULT_ML_API_KEY: ${COGNIVAULT_ML_API_KEY:-}
+      WEBSOCKET_ALLOWED_ORIGINS: ${WEBSOCKET_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:4173}
+    ports: ["8080:8080"]
+    depends_on:
+      mysql: { condition: service_healthy }
+      mongodb: { condition: service_healthy }
+      ml-service: { condition: service_started }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_WS_URL: /ws
+        VITE_ENABLE_MOCK: "false"
+    restart: unless-stopped
+    ports: ["5173:80"]
+    depends_on:
+      backend: { condition: service_healthy }
+
+volumes:
+  cognivault_mysql:
+  cognivault_mongo:
+  cognivault_chroma:
+  cognivault_ollama:
+  cognivault_ml_models:
+
+\n

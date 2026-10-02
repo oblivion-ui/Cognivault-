@@ -1,0 +1,1 @@
+export { lifecycleApi } from './platformApis'

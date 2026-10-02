@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/cognivault?serverTimezone=UTC}
+    username: ${MYSQL_USER:cognivault}
+    password: ${MYSQL_PASSWORD:}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/cognivault_audit}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+
+cognivault:
+  jwt:
+    secret: ${COGNIVAULT_JWT_SECRET:}
+    expiration-minutes: ${COGNIVAULT_JWT_EXPIRATION_MINUTES:60}
+  bootstrap:
+    enabled: ${COGNIVAULT_BOOTSTRAP_ADMIN_ENABLED:false}
+    username: ${COGNIVAULT_BOOTSTRAP_ADMIN_USERNAME:}
+    email: ${COGNIVAULT_BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${COGNIVAULT_BOOTSTRAP_ADMIN_PASSWORD:}
+    name: ${COGNIVAULT_BOOTSTRAP_ADMIN_NAME:Local Administrator}
+    second-admin-enabled: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_ENABLED:false}
+    second-admin-username: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_USERNAME:}
+    second-admin-email: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_EMAIL:}
+    second-admin-password: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_PASSWORD:}
+    second-admin-name: ${COGNIVAULT_BOOTSTRAP_SECOND_ADMIN_NAME:Four-Eyes Approver}
+    hr-enabled: ${COGNIVAULT_BOOTSTRAP_HR_ENABLED:false}
+    hr-reset-password: ${COGNIVAULT_BOOTSTRAP_HR_RESET_PASSWORD:false}
+    hr-username: ${COGNIVAULT_BOOTSTRAP_HR_USERNAME:}
+    hr-email: ${COGNIVAULT_BOOTSTRAP_HR_EMAIL:}
+    hr-password: ${COGNIVAULT_BOOTSTRAP_HR_PASSWORD:}
+    hr-name: ${COGNIVAULT_BOOTSTRAP_HR_NAME:HR Development User}
+  ml:
+    base-url: ${ML_SERVICE_URL:http://localhost:8000}
+    api-key: ${COGNIVAULT_ML_API_KEY:}
+  websocket:
+    allowed-origins: ${WEBSOCKET_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173}
+
+
+  anomaly-risk:
+    medium-threshold: 0.50
+    high-threshold: 0.65
+    critical-threshold: 0.80

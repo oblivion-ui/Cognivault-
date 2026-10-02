@@ -1,0 +1,78 @@
+# =========================
+# CogniVault Git Ignore
+# =========================
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Frontend build
+dist/
+build/
+.vite/
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Java / Maven
+backend/target/
+target/
+*.class
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Runtime / logs
+*.log
+hs_err_pid*
+replay_pid*
+
+# Database / local runtime artifacts
+*.sql.gz
+*.bson
+*.archive
+*.archive.gz
+*.dump
+
+# Verification / backups
+verification-backup/
+
+# Local Chroma / ML generated data
+chroma_data/
+chroma/
+data/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+
+# Generated inspection artifacts
+backend/jar-inspect/
+
+# Local source backups
+*.backup
+
+# Generated Java artifacts
+*.jar
